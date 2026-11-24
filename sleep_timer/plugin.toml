@@ -1,6 +1,6 @@
 id           = "nid25/sleep_timer"
 name         = "Sleep Timer"
-version      = "2.1.0"
+version      = "2.2.0"
 # 52: translateY (layers over the dial); also pixel streams, module require, gesture defaults
 plugin_api   = 52
 author       = "nid25"
@@ -18,6 +18,17 @@ type            = "string"
 label_key       = "settings.font_family.label"
 description_key = "settings.font_family.description"
 default         = ""
+
+# The bar widget API cannot read the bar thickness, so the dial size is a setting
+[[setting]]
+key             = "dial_size"
+type            = "int"
+label_key       = "settings.dial_size.label"
+description_key = "settings.dial_size.description"
+default         = 27
+min             = 12
+max             = 64
+step            = 1
 
 [[widget]]
 id    = "sleep_timer"

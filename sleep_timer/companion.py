@@ -26,15 +26,19 @@ def transparent_buffer():
     return fd
 
 
-def already_running(path):
-    probe = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
+def take_lock(path):
+    """Returns the lock file held for the companion's lifetime, or None if another copy has it.
+
+    The panel may start the companion twice in quick succession; the lock makes sure only
+    one of them binds the socket, so a losing copy can never unlink the winner's socket.
+    """
+    lock = open(path + ".lock", "a")
     try:
-        probe.connect(path)
-        return True
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:
-        return False
-    finally:
-        probe.close()
+        lock.close()
+        return None
+    return lock
 
 
 def serve(conn, buffer_fd):
@@ -42,7 +46,7 @@ def serve(conn, buffer_fd):
     while True:
         msg = conn.recv(64)
         if len(msg) < 8:
-            return  # closed, or a probe from a second companion
+            return  # connection closed
         kind, value = struct.unpack_from("<II", msg)
         if kind == 1 and value != 1:
             return  # HELLO with a protocol version we do not speak
@@ -55,8 +59,10 @@ def serve(conn, buffer_fd):
 
 def main():
     path = sys.argv[1]
-    if already_running(path):
-        return
+    lock = take_lock(path)
+    if lock is None:
+        return  # another copy is serving this socket
+    # A socket file left by a copy that was killed is stale: the lock was free
     try:
         os.unlink(path)
     except FileNotFoundError:
@@ -86,6 +92,7 @@ def main():
             os.unlink(path)
         except FileNotFoundError:
             pass
+        lock.close()
 
 
 if __name__ == "__main__":

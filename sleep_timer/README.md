@@ -69,14 +69,18 @@ the neutral color again, and so on. 2 h 30 min is two full laps plus half of a t
 | Setting | Type | Default | Description |
 | --- | --- | --- | --- |
 | `font_family` | `string` | `""` | Font for the numbers drawn on the bar and panel dials. Empty uses the shell font (`shell.font_family`), then `sans-serif`. |
+| `dial_size` | `int` | `27` | Size of the bar dial in pixels, 12 to 64. The default fits the default bar; set it to your bar's capsule size if the dial looks too big or too small. |
 
 ## Notes
 
 - **Commands:** `shutdown -h +N` to start and `shutdown -c` to cancel. A shutdown
   scheduled from a terminal shows up in the plugin too: it reads logind's schedule from
-  `/run/systemd/shutdown/scheduled`.
+  `/run/systemd/shutdown/scheduled`. A scheduled reboot is not shown and is never
+  replaced or cancelled by the plugin.
 - **Files:** the chosen minutes and the generated dial images (SVG) are written to the
-  plugin's data directory. Old dial images are removed when the widget or panel loads.
+  plugin's data directory. Each entry keeps only its last two dial images and removes
+  older ones, and all are removed when the widget or panel loads. The companion also
+  creates `dial.sock` and `dial.sock.lock` there.
 - **Process:** opening the panel starts `python3 companion.py <data dir>/dial.sock`. It
   serves a single transparent pixel through Noctalia's pixel stream protocol, because a
   pixel stream is the only panel control that reports pointer press, drag and release.

@@ -6,14 +6,24 @@
 local timer = require("./timer.luau")
 
 local MINUTES_PER_TICK = 5
--- Capsule height: bar thickness 30 * capsule_thickness 0.9
-local DIAL_SIZE = 27
+-- Default fits a capsule of bar thickness 30 * capsule_thickness 0.9. The widget API cannot
+-- read the bar thickness, so other bars set the size in the plugin settings.
+local DEFAULT_DIAL_SIZE = 27
+
+local function dialSize()
+  local size = tonumber(noctalia.getConfig("dial_size"))
+  if not size then
+    return DEFAULT_DIAL_SIZE
+  end
+  return math.clamp(math.floor(size), 12, 64)
+end
 
 -- The script re-runs whenever the bar rebuilds its widgets, so nothing can live only in
 -- variables: the schedule is read from logind and the chosen minutes from timer.luau.
 local dataDir = timer.dataDir
 local minutes = timer.loadMinutes()
 local lastTooltip = nil
+local trackImage = timer.imageTracker()
 
 local function dialSvg(value, neutral, accent, textColor, font)
   local style = timer.lapStyle(value, neutral, accent)
@@ -55,7 +65,9 @@ local function drawDial(value, neutral, accent, textColor)
   if not noctalia.fileExists(path) then
     noctalia.writeFile(path, dialSvg(value, neutral, accent, textColor, font))
   end
-  barWidget.setImage(path, false, DIAL_SIZE, DIAL_SIZE)
+  local size = dialSize()
+  barWidget.setImage(path, false, size, size)
+  trackImage(path)
 end
 
 local function render()
@@ -76,6 +88,10 @@ local function render()
 end
 
 function update()
+  render()
+end
+
+function onConfigChanged()
   render()
 end
 

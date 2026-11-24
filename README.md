@@ -7,7 +7,7 @@ tile. See [sleep_timer/README.md](sleep_timer/README.md) for usage.
 ## Install from this repository
 
 ```sh
-noctalia msg plugins source add sleep-timer git https://github.com/<owner>/<repo>
+noctalia msg plugins source add sleep-timer git https://github.com/Hal-Otacon-Emmerich/noctalia-sleep-timer
 noctalia msg plugins enable nid25/sleep_timer
 ```
 

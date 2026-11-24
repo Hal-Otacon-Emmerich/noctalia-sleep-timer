@@ -26,6 +26,7 @@ local pluginDir = noctalia.pluginDir()
 local socketPath = dataDir and (dataDir .. "/dial.sock")
 local minutes = timer.loadMinutes()
 local at = timer.scheduledAt()
+local trackImage = timer.imageTracker()
 
 -- Drag state: the minutes while dragging are a float, rounded for display
 local dragging = false
@@ -139,6 +140,7 @@ local function dialImage(value)
   if not noctalia.fileExists(path) then
     noctalia.writeFile(path, dialSvg(value, c, dragging, font))
   end
+  trackImage(path)
   return ui.image({ path = path, width = DIAL, height = DIAL })
 end
 
@@ -178,6 +180,10 @@ local function applyTyped()
   local total = h * 60 + m
   if total >= 1 and total ~= minutes then
     minutes = timer.setMinutes(total)
+    if minutes ~= total then
+      -- Clamped to 23:59: show the stored time instead of what was typed
+      resetInputs()
+    end
     render()
   end
 end

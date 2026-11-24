@@ -3,6 +3,10 @@
     "font_family": {
       "label": "Dial font",
       "description": "Font for the numbers on the bar and panel dials. Leave empty to use the shell font."
+    },
+    "dial_size": {
+      "label": "Bar dial size",
+      "description": "Size of the dial on the bar in pixels. 27 fits the default bar; match it to your bar thickness."
     }
   },
   "duration": {
@@ -30,6 +34,7 @@
     "started_title": "Sleep timer started",
     "started_body": "The computer will shut down in {time}, at {clock}",
     "cancelled_title": "Sleep timer cancelled",
-    "cancelled_body": "The computer will not shut down"
+    "cancelled_body": "The computer will not shut down",
+    "other_scheduled": "A reboot is already scheduled. Cancel it with shutdown -c first"
   }
 }

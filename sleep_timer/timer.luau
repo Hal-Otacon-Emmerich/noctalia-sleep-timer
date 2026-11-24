@@ -43,10 +43,20 @@ function M.setMinutes(value)
   return value
 end
 
+-- Schedule modes that count as this timer; a scheduled reboot is left alone
+local SHUTDOWN_MODES = { poweroff = true, halt = true }
+
 -- Shutdown time in unix seconds, or nil when nothing is scheduled
 function M.scheduledAt()
   local raw = noctalia.readFile(SCHEDULED_FILE)
-  local usec = raw and raw:match("USEC=(%d+)")
+  if not raw then
+    return nil
+  end
+  local mode = raw:match("MODE=([%w%-]+)")
+  if mode and not SHUTDOWN_MODES[mode] then
+    return nil
+  end
+  local usec = raw:match("USEC=(%d+)")
   return usec and math.floor(tonumber(usec) / 1000000)
 end
 
@@ -101,6 +111,21 @@ function M.lapStyle(value, neutral, accent)
   return style
 end
 
+-- Keeps at most two dial images per entry on disk: the one shown and the one before it.
+-- The previous file is removed one change later, so it is never deleted while still on screen.
+function M.imageTracker()
+  local shown, previous = nil, nil
+  return function(path)
+    if path == shown then
+      return
+    end
+    if previous and previous ~= path then
+      noctalia.removeFile(previous)
+    end
+    previous, shown = shown, path
+  end
+end
+
 local function announce()
   -- Any changing value works; the watchers only re-read the logind schedule
   noctalia.state.set("scheduled", noctalia.nowMs())
@@ -122,6 +147,11 @@ end
 
 function M.start(value, onDone)
   if M.scheduledAt() then
+    return
+  end
+  if noctalia.fileExists(SCHEDULED_FILE) then
+    -- Something else (a reboot) is scheduled; `shutdown -h` would silently replace it
+    noctalia.notifyError(noctalia.tr("notify.title"), noctalia.tr("notify.other_scheduled"))
     return
   end
   runShutdown({ "shutdown", "-h", "+" .. value }, function()
