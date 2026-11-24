@@ -21,6 +21,35 @@ show the same timer.
   `companion.py`, which lets the panel's dial knob be dragged. Without it the panel still
   works through the hour and minute fields.
 
+### NixOS
+
+Noctalia does not install a plugin's dependencies, and on NixOS its `PATH` may not
+contain them, especially when it runs as a systemd user service.
+
+- **`python3` not found** (the knob cannot be dragged, `noctalia.log` shows a failed
+  `python3` start): add it to Noctalia's `PATH` with Home Manager:
+
+  ```nix
+  programs.noctalia.extraPackages = [ pkgs.python3 ];
+  ```
+
+- **`shutdown` not found** (starting the timer shows an error): `shutdown` comes from the
+  system's systemd in `/run/current-system/sw/bin`, which must be on Noctalia's `PATH`.
+  Do not add `pkgs.systemd` to `extraPackages`: its `shutdown` may not match the running
+  systemd.
+- **Plugin missing after a rebuild:** if `programs.noctalia.settings.plugins.source` is
+  set, it replaces the default sources. Add the source of this plugin to that list and
+  `nid25/sleep_timer` to `plugins.enabled`.
+- **Edits to a local copy do not show up:** give a `path` source an absolute string such
+  as `"/home/me/src/noctalia-sleep-timer"`, not a Nix path like `./noctalia-sleep-timer`,
+  which is copied into the store and frozen.
+- **Plugin does not load:** it needs plugin API 52, Noctalia 5.5.0 or newer. If nixpkgs
+  ships an older version, use the `github:noctalia-dev/noctalia` flake.
+
+Check that your user can schedule a shutdown with
+`shutdown -h +600 && shutdown -c`, and look for errors in
+`~/.cache/noctalia/noctalia.log`.
+
 ## Usage
 
 ### Bar widget
