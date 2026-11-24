@@ -1,0 +1,16 @@
+# Index for using this repo directly as a Noctalia plugin source.
+# Keep in sync with sleep_timer/plugin.toml. Do not copy this file into community-plugins:
+# its CI generates its own catalog.
+
+[[plugin]]
+id           = "nid25/sleep_timer"
+name         = "Sleep Timer"
+version      = "2.1.0"
+author       = "nid25"
+license      = "MIT"
+icon         = "moon"
+description  = "Shut down the computer after a set time, from a bar dial, a draggable dial panel or a Control Center tile."
+deprecated   = false
+plugin_api   = 52
+tags         = ["bar", "panel", "shortcut", "countdown", "system", "utility"]
+dependencies = ["shutdown", "python3"]
