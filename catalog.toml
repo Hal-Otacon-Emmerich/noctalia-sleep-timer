@@ -5,7 +5,7 @@
 [[plugin]]
 id           = "nid25/sleep_timer"
 name         = "Sleep Timer"
-version      = "2.2.0"
+version      = "2.3.0"
 author       = "nid25"
 license      = "MIT"
 icon         = "moon"
@@ -13,4 +13,4 @@ description  = "Shut down the computer after a set time, from a bar dial, a drag
 deprecated   = false
 plugin_api   = 52
 tags         = ["bar", "panel", "shortcut", "countdown", "system", "utility"]
-dependencies = ["shutdown", "python3"]
+dependencies = ["systemd-run", "systemctl", "python3"]
