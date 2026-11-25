@@ -3,7 +3,7 @@
 ## Plugin
 
 - **Id:** `nid25/sleep_timer`
-- [x] New plugin
+- [x] New plugin (version 2.3.1)
 - [ ] Update to an existing plugin (version bumped in `plugin.toml`)
 
 ## What it does
@@ -14,22 +14,26 @@ Shuts the computer down after a set time, for falling asleep to music or a video
 - **Panel** (`panel`): a large dial with a draggable knob, hour and minute fields, and the shutdown time. Open it with `noctalia msg panel-toggle nid25/sleep_timer:panel`.
 - **Control Center tile** (`tile`): opens the panel; right click starts or cancels the timer and shows the remaining time.
 
-The timer is a regular logind schedule, so a shutdown scheduled from a terminal shows up in the plugin too. A scheduled reboot is never shown, replaced or cancelled.
+The timer is a transient systemd user timer owned by the plugin (`noctalia-sleep-timer.timer`), and that unit is the source of truth for the countdown. The plugin never reads, replaces or cancels logind's shutdown schedule: a shutdown or reboot scheduled with `shutdown` or by any other program is left alone and is no longer displayed in the plugin.
 
 ## External dependencies
 
-- `shutdown` (systemd): `shutdown -h +N` to start, `shutdown -c` to cancel. The schedule is read from `/run/systemd/shutdown/scheduled`.
+- `systemd-run` and `systemctl` (systemd, with a user manager running): start, stop and read the plugin's own user timer, which runs `systemctl poweroff`.
 - `python3` (3.9+, standard library only): runs `companion.py` while the panel is open. It serves one transparent pixel over the pixel stream protocol, because a pixel stream is the only panel control that reports pointer press, drag and release. Without it the panel still works through the hour and minute fields.
 
 Everything the plugin does outside Luau:
 
-- **Processes:** `shutdown -h +N`, `shutdown -c` (argv form), and `python3 companion.py <data dir>/dial.sock` when the panel opens. The companion holds a lock file so only one copy runs, and exits about 5 seconds after the panel closes.
-- **Files written**, all in `noctalia.pluginDataDir()`: `minutes` (the chosen time), dial images `dial-*.svg` / `panel-*.svg` (at most two per entry, all removed on load), `dial.sock` and `dial.sock.lock`.
+- **Processes** (all argv form, systemctl calls with a 10 s timeout):
+  - start: `systemd-run --user --unit=noctalia-sleep-timer --collect --on-active=<N>s --timer-property=AccuracySec=1s --timer-property=RemainAfterElapse=no systemctl poweroff`
+  - cancel: `systemctl --user stop noctalia-sleep-timer.timer`
+  - status: `systemctl --user list-timers --all --no-pager --output=json noctalia-sleep-timer.timer`, when the bar widget or tile loads, when the panel opens, and every 30 s while a timer runs (one check shared by all entries). Nothing is polled while no timer runs.
+  - `python3 companion.py <data dir>/dial.sock` when the panel opens. The companion holds a lock file so only one copy serves the socket (a second copy waits up to ~6 s for the first to exit, then gives up), and exits about 5 seconds after the panel closes.
+- **Files written**, all in `noctalia.pluginDataDir()`: `minutes` (the chosen time), `deadline` (the timer's last known end time and boot id, a cache for drawing the countdown that is synced from systemd), dial images `dial-*.svg` / `panel-*.svg` (at most two per entry, all removed on load), `dial.sock` and `dial.sock.lock`.
 - **Network:** none.
 
 ## Testing
 
-Tested on NixOS with Niri. Added the bar widget, opened the panel and the Control Center tile; started and cancelled the timer from each, checked `/run/systemd/shutdown/scheduled`; dragged the knob across 12 o'clock, scrolled, typed times including over 23:59; checked that a scheduled `shutdown -r` is left alone; changed the `font_family` and `dial_size` settings. Validated with `validate-plugins.py --profile community` at the commit pinned in CI.
+Tested on NixOS with Niri. Added the bar widget, opened the panel and the Control Center tile; started and cancelled the timer from each and from a terminal, checked `systemctl --user list-timers`; dragged the knob across 12 o'clock, scrolled, typed times including over 23:59; typed invalid input such as `00`; checked that a scheduled `shutdown -r` is left alone; let the timer power the machine off; changed the `font_family` and `dial_size` settings. Validated with `validate-plugins.py --profile community` at the commit pinned in CI.
 
 - [x] Tested on Niri
 - [ ] Tested on Hyprland
