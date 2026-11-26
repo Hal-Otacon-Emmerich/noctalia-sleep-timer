@@ -290,7 +290,12 @@ end
 -- Next power-off of the plugin's timer from `systemctl list-timers` JSON: unix seconds when
 -- armed, false when systemd confirms nothing is pending, nil when the answer is unusable
 local function parseTimers(stdout)
-  local ok, timers = pcall(noctalia.json.decode, stdout or "")
+  stdout = stdout or ""
+  if not stdout:find("%S") then
+    -- list-timers prints nothing at all when no timer matches the pattern
+    return false
+  end
+  local ok, timers = pcall(noctalia.json.decode, stdout)
   if not ok or type(timers) ~= "table" then
     return nil
   end
