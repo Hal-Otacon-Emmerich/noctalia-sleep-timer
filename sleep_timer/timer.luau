@@ -290,9 +290,9 @@ end
 -- Next power-off of the plugin's timer from `systemctl list-timers` JSON: unix seconds when
 -- armed, false when systemd confirms nothing is pending, nil when the answer is unusable
 local function parseTimers(stdout)
-  stdout = stdout or ""
-  if not stdout:find("%S") then
-    -- list-timers prints nothing at all when no timer matches the pattern
+  stdout = (stdout or ""):match("^%s*(.-)%s*$")
+  if stdout == "" or stdout:match("^%[%s*%]$") then
+    -- No timer matches: an empty list ("[]"), or no output at all
     return false
   end
   local ok, timers = pcall(noctalia.json.decode, stdout)
@@ -332,9 +332,16 @@ verify = function(onDone)
       -- A Start or Cancel began or ended meanwhile: this answer may predate it
       return
     end
-    local armedAt = result.exitCode == 0 and parseTimers(result.stdout) or nil
+    -- Not "exitCode == 0 and parseTimers(...) or nil": that would turn false into nil
+    local armedAt = nil
+    if result.exitCode == 0 then
+      armedAt = parseTimers(result.stdout)
+    end
     if armedAt == nil then
       -- No usable answer: the state stays what it was, unknown included
+      noctalia.log(string.format("sleep_timer: unusable timer status (exit %s, timed out %s): stdout %q, stderr %q",
+        tostring(result.exitCode), tostring(result.timedOut), (result.stdout or ""):sub(1, 200),
+        (result.stderr or ""):sub(1, 200)))
       return
     end
     local status, cached = M.status()
